@@ -19,8 +19,15 @@ class TimesheetApp:
             
         self._set_custom_css()
         self.sheets_service = self._initialize_google_sheets()
-        self.timesheet_sheet_id = st.secrets["timesheet_sheet_id"]
-        self.teachers_sheet_id = st.secrets["teachers_sheet_id"]
+        
+        # Access secrets directly without nested structure
+        try:
+            self.timesheet_sheet_id = st.secrets.timesheet_sheet_id
+            self.teachers_sheet_id = st.secrets.teachers_sheet_id
+        except Exception as e:
+            st.error("Unable to load sheet IDs from secrets. Please check your Streamlit Cloud settings.")
+            st.error(f"Error: {str(e)}")
+            raise
 
     @staticmethod
     @st.cache_data(ttl=3600)
@@ -152,6 +159,7 @@ class TimesheetApp:
         except Exception as e:
             st.error(f"Error getting teacher info: {str(e)}")
             return None
+        
     @st.cache_data(ttl=5)
     def check_active_session(_self, teacher_id):
         """Check and cache active session status"""
