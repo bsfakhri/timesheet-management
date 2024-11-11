@@ -1,10 +1,55 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
+import os
 import calendar
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
+from dotenv import load_dotenv
 import json
+
+import streamlit as st
+import os
+
+# Add this debugging block at the start of your TimesheetApp.__init__
+def __init__(self):
+    st.write("Starting initialization...")
+    
+    # Debug environment variables
+    st.write("Checking environment variables...")
+    st.write("TIMESHEET_SHEET_ID exists:", bool(os.getenv('TIMESHEET_SHEET_ID')))
+    st.write("TEACHERS_SHEET_ID exists:", bool(os.getenv('TEACHERS_SHEET_ID')))
+    st.write("GOOGLE_SHEETS_CREDENTIALS exists:", bool(os.getenv('GOOGLE_SHEETS_CREDENTIALS')))
+    
+    try:
+        st.set_page_config(
+            page_title="Timesheet Management System",
+            layout="centered",
+            initial_sidebar_state="collapsed"
+        )
+        st.write("Page config set successfully")
+        
+        if 'current_page' not in st.session_state:
+            st.session_state.current_page = 'main'
+            st.write("Session state initialized")
+            
+        self._set_custom_css()
+        st.write("Custom CSS set")
+        
+        load_dotenv()
+        st.write("Env variables loaded")
+        
+        st.write("Initializing Google Sheets...")
+        self.sheets_service = self._initialize_google_sheets()
+        st.write("Google Sheets initialized")
+        
+        self.timesheet_sheet_id = os.getenv('TIMESHEET_SHEET_ID')
+        self.teachers_sheet_id = os.getenv('TEACHERS_SHEET_ID')
+        st.write("Sheet IDs loaded")
+        
+    except Exception as e:
+        st.error(f"Initialization error: {str(e)}")
+        raise e
 
 class TimesheetApp:
     def __init__(self):
@@ -18,21 +63,15 @@ class TimesheetApp:
             st.session_state.current_page = 'main'
             
         self._set_custom_css()
+        load_dotenv()
         self.sheets_service = self._initialize_google_sheets()
-        
-        # Access secrets directly without nested structure
-        try:
-            self.timesheet_sheet_id = st.secrets.timesheet_sheet_id
-            self.teachers_sheet_id = st.secrets.teachers_sheet_id
-        except Exception as e:
-            st.error("Unable to load sheet IDs from secrets. Please check your Streamlit Cloud settings.")
-            st.error(f"Error: {str(e)}")
-            raise
+        self.timesheet_sheet_id = os.getenv('TIMESHEET_SHEET_ID')
+        self.teachers_sheet_id = os.getenv('TEACHERS_SHEET_ID')
 
     @staticmethod
-    @st.cache_data(ttl=3600)
+    @st.cache_data(ttl=3600)  # Cache CSS for 1 hour
     def _set_custom_css():
-        """Set custom CSS with caching"""
+        """Set custom CSS with caching to avoid reloading"""
         st.markdown("""
             <style>
             .big-font {
@@ -77,7 +116,7 @@ class TimesheetApp:
             st.error(f"Error initializing Google Sheets: {str(e)}")
             raise
 
-    @st.cache_data(ttl=5)
+    @st.cache_data(ttl=5)  # Cache sheet data for 5 seconds
     def read_sheet_to_df(_self, sheet_id, range_name):
         """Read and cache sheet data with 5-second TTL"""
         try:
@@ -144,7 +183,7 @@ class TimesheetApp:
             st.error(f"Error updating Google Sheet: {str(e)}")
             return False
 
-    @st.cache_data(ttl=30)
+    @st.cache_data(ttl=30)  # Cache teacher info for 30 seconds
     def get_teacher_info(_self, teacher_id):
         """Get and cache teacher information"""
         try:
@@ -159,8 +198,8 @@ class TimesheetApp:
         except Exception as e:
             st.error(f"Error getting teacher info: {str(e)}")
             return None
-        
-    @st.cache_data(ttl=5)
+
+    @st.cache_data(ttl=5)  # Cache active session check for 5 seconds
     def check_active_session(_self, teacher_id):
         """Check and cache active session status"""
         try:
@@ -190,7 +229,7 @@ class TimesheetApp:
             return False, None
 
     def handle_clock_in(self, teacher_id, program):
-        """Handle clock in with validation"""
+        """Handle clock in with improved validation"""
         try:
             teacher_id = str(teacher_id).strip()
             
@@ -237,9 +276,8 @@ class TimesheetApp:
         except Exception as e:
             st.error(f"Error during clock in: {str(e)}")
             return False
-
     def handle_clock_out(self, teacher_id, program):
-        """Handle clock out with validation"""
+        """Handle clock out with improved validation and caching"""
         try:
             teacher_id = str(teacher_id).strip()
             
@@ -251,6 +289,7 @@ class TimesheetApp:
                 st.error("Invalid ITS ID")
                 return False
 
+            # Clear cache and check active session
             self.check_active_session.clear()
             has_active, active_program = self.check_active_session(teacher_id)
             
@@ -262,6 +301,7 @@ class TimesheetApp:
             current_date = datetime.now().strftime('%Y-%m-%d')
             current_time = datetime.now()
             
+            # Ensure consistent data types
             timesheet_df['teacher_id'] = timesheet_df['teacher_id'].astype(str).str.strip()
             timesheet_df['clock_out'] = timesheet_df['clock_out'].fillna('')
             
@@ -295,6 +335,7 @@ class TimesheetApp:
                 st.error(f"Error calculating hours: {str(e)}")
                 return False
 
+            # Update all fields in a sequence
             success = all([
                 self.update_sheet_cell(
                     self.timesheet_sheet_id,
@@ -319,6 +360,50 @@ class TimesheetApp:
             st.error(f"Error during clock out: {str(e)}")
             return False
 
+    @staticmethod
+    @st.cache_data(ttl=60)
+    def format_clock_time(time_str):
+        """Format clock time with caching"""
+        try:
+            if not time_str or pd.isna(time_str) or time_str == '' or time_str is None:
+                return 'Active ⚡'
+            parsed_time = datetime.strptime(str(time_str).strip(), '%H:%M:%S')
+            return parsed_time.strftime('%I:%M %p')
+        except Exception:
+            return 'Invalid Time'
+            
+    @staticmethod
+    @st.cache_data(ttl=60)
+    def format_time_for_sorting(time_str):
+        """Format time for sorting with caching"""
+        try:
+            if time_str == 'Active ⚡' or time_str == 'Invalid Time':
+                return '23:59:59'
+            return datetime.strptime(time_str, '%I:%M %p').strftime('%H:%M:%S')
+        except Exception:
+            return '00:00:00'
+
+    @st.cache_data(ttl=30)
+    def get_monthly_entries(_self, teacher_id, year, month):
+        """Get and cache monthly entries"""
+        try:
+            timesheet_df = _self.read_sheet_to_df(_self.timesheet_sheet_id, 'A:H')
+            if timesheet_df.empty:
+                return pd.DataFrame()
+            
+            timesheet_df['date'] = pd.to_datetime(timesheet_df['date'], format='%Y-%m-%d')
+            timesheet_df['teacher_id'] = timesheet_df['teacher_id'].astype(str).str.strip()
+            
+            mask = (
+                (timesheet_df['teacher_id'] == str(teacher_id).strip()) &
+                (timesheet_df['date'].dt.year == year) &
+                (timesheet_df['date'].dt.month == month)
+            )
+            return timesheet_df[mask]
+        except Exception as e:
+            st.error(f"Error getting monthly entries: {str(e)}")
+            return pd.DataFrame()
+
     def main_page(self):
         """Main page of the application"""
         st.markdown("""
@@ -329,7 +414,7 @@ class TimesheetApp:
         """, unsafe_allow_html=True)
 
         teacher_id = st.text_input(
-            "Enter ITS ID",
+            "Enter ITS",
             placeholder="Enter ITS ID",
             label_visibility="collapsed"
         ).strip()
@@ -342,6 +427,7 @@ class TimesheetApp:
         )
 
         if teacher_id:
+            # Clear cache before checking active session
             self.check_active_session.clear()
             has_active, active_program = self.check_active_session(teacher_id)
             if has_active:
@@ -395,7 +481,6 @@ class TimesheetApp:
                 </div>
             """, unsafe_allow_html=True)
             
-            # Get current month and previous month
             current_month = datetime.now().month
             current_year = datetime.now().year
             
@@ -415,11 +500,25 @@ class TimesheetApp:
                     entries = self.get_monthly_entries(teacher_id, year, month)
                     if not entries.empty:
                         display_df = entries.copy()
-                        display_df['date'] = pd.to_datetime(display_df['date']).dt.strftime('%Y-%m-%d')
+                        display_df['date'] = display_df['date'].dt.strftime('%Y-%m-%d')
                         display_df['clock_in'] = display_df['clock_in'].apply(self.format_clock_time)
                         display_df['clock_out'] = display_df['clock_out'].apply(self.format_clock_time)
                         
-                        display_df = display_df[['date', 'program', 'clock_in', 'clock_out']]
+                        try:
+                            display_df['sort_datetime'] = pd.to_datetime(
+                                display_df['date'] + ' ' + display_df['clock_in'].apply(
+                                    lambda x: self.format_time_for_sorting(x) if pd.notna(x) else '00:00:00'
+                                ),
+                                format='%Y-%m-%d %H:%M:%S'
+                            )
+                        except Exception as e:
+                            st.error(f"Error creating sort datetime: {str(e)}")
+                            display_df['sort_datetime'] = pd.to_datetime(display_df['date'])
+                        
+                        display_df = display_df.sort_values('sort_datetime', ascending=False)
+                        columns_to_display = ['date', 'program', 'clock_in', 'clock_out']
+                        display_df = display_df[columns_to_display]
+                        
                         st.dataframe(display_df, use_container_width=True)
                     else:
                         st.info(f"No entries for {calendar.month_name[month]} {year}")
