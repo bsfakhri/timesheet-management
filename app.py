@@ -64,10 +64,8 @@ class TimesheetApp:
     def _initialize_google_sheets():
         """Initialize and cache Google Sheets service connection"""
         try:
-            creds_json = os.getenv('GOOGLE_SHEETS_CREDENTIALS')
-            creds_dict = json.loads(creds_json)
             credentials = service_account.Credentials.from_service_account_info(
-                creds_dict,
+                st.secrets["gcp_service_account"],
                 scopes=['https://www.googleapis.com/auth/spreadsheets']
             )
             return build('sheets', 'v4', credentials=credentials)
