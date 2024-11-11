@@ -8,6 +8,49 @@ from googleapiclient.discovery import build
 from dotenv import load_dotenv
 import json
 
+import streamlit as st
+import os
+
+# Add this debugging block at the start of your TimesheetApp.__init__
+def __init__(self):
+    st.write("Starting initialization...")
+    
+    # Debug environment variables
+    st.write("Checking environment variables...")
+    st.write("TIMESHEET_SHEET_ID exists:", bool(os.getenv('TIMESHEET_SHEET_ID')))
+    st.write("TEACHERS_SHEET_ID exists:", bool(os.getenv('TEACHERS_SHEET_ID')))
+    st.write("GOOGLE_SHEETS_CREDENTIALS exists:", bool(os.getenv('GOOGLE_SHEETS_CREDENTIALS')))
+    
+    try:
+        st.set_page_config(
+            page_title="Timesheet Management System",
+            layout="centered",
+            initial_sidebar_state="collapsed"
+        )
+        st.write("Page config set successfully")
+        
+        if 'current_page' not in st.session_state:
+            st.session_state.current_page = 'main'
+            st.write("Session state initialized")
+            
+        self._set_custom_css()
+        st.write("Custom CSS set")
+        
+        load_dotenv()
+        st.write("Env variables loaded")
+        
+        st.write("Initializing Google Sheets...")
+        self.sheets_service = self._initialize_google_sheets()
+        st.write("Google Sheets initialized")
+        
+        self.timesheet_sheet_id = os.getenv('TIMESHEET_SHEET_ID')
+        self.teachers_sheet_id = os.getenv('TEACHERS_SHEET_ID')
+        st.write("Sheet IDs loaded")
+        
+    except Exception as e:
+        st.error(f"Initialization error: {str(e)}")
+        raise e
+
 class TimesheetApp:
     def __init__(self):
         st.set_page_config(
