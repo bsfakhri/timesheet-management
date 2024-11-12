@@ -108,7 +108,7 @@ class TimesheetApp:
             st.error(f"Error initializing Google Sheets: {str(e)}")
             raise
 
-    @st.cache_data(ttl=5)  # Cache sheet data for 5 seconds
+    @st.cache_data(ttl=30)  # Cache sheet data for 30 seconds
     def read_sheet_to_df(_self, sheet_id, range_name):
         """Read and cache sheet data with 5-second TTL"""
         try:
