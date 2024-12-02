@@ -401,7 +401,7 @@ class TimesheetApp:
         st.markdown("""
             <div class="main-header">
                 <span style='font-size: 30px;'>⏰</span>
-                <span class="big-font">Timesheet Management System</span>
+                <span class="big-font">AL JAMEAH AL SAYFIYAH TRUST Timesheet</span>
             </div>
         """, unsafe_allow_html=True)
 
