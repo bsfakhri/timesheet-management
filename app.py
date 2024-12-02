@@ -17,7 +17,7 @@ def __init__(self):
     
     try:
         st.set_page_config(
-            page_title="Timesheet Management System",
+            page_title="AL JAMEAH AL SAYFIYAH TRUST Timesheet",
             layout="centered",
             initial_sidebar_state="collapsed"
         )
