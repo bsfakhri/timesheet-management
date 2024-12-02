@@ -46,7 +46,7 @@ def __init__(self):
 class TimesheetApp:
     def __init__(self):
         st.set_page_config(
-            page_title="Timesheet Management System",
+            page_title="AL JAMEAH AL SAYFIYAH TRUST Timesheet",
             layout="centered",
             initial_sidebar_state="collapsed"
         )
