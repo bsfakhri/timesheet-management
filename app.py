@@ -8,41 +8,6 @@ from googleapiclient.discovery import build
 from dotenv import load_dotenv
 import json
 
-import streamlit as st
-import os
-
-# Add this debugging block at the start of your TimesheetApp.__init__
-def __init__(self):
-    st.write("Starting initialization...")
-    
-    try:
-        st.set_page_config(
-            page_title="AL JAMEAH AL SAYFIYAH TRUST Timesheet",
-            layout="centered",
-            initial_sidebar_state="collapsed"
-        )
-        st.write("Page config set successfully")
-        
-        if 'current_page' not in st.session_state:
-            st.session_state.current_page = 'main'
-            st.write("Session state initialized")
-            
-        self._set_custom_css()
-        st.write("Custom CSS set")
-        
-        
-        st.write("Initializing Google Sheets...")
-        self.sheets_service = self._initialize_google_sheets()
-        st.write("Google Sheets initialized")
-        
-        self.timesheet_sheet_id = st.secrets['TIMESHEET_SHEET_ID']
-        self.teachers_sheet_id = st.secrets['TEACHERS_SHEET_ID']
-        st.write("Sheet IDs loaded")
-        
-    except Exception as e:
-        st.error(f"Initialization error: {str(e)}")
-        raise e
-
 class TimesheetApp:
     def __init__(self):
         st.set_page_config(
@@ -63,7 +28,7 @@ class TimesheetApp:
     @staticmethod
     @st.cache_data(ttl=3600)  # Cache CSS for 1 hour
     def _set_custom_css():
-        """Set custom CSS with caching to avoid reloading"""
+        """Set custom CSS with caching"""
         st.markdown("""
             <style>
             .big-font {
@@ -110,7 +75,7 @@ class TimesheetApp:
 
     @st.cache_data(ttl=30)  # Cache sheet data for 30 seconds
     def read_sheet_to_df(_self, sheet_id, range_name):
-        """Read and cache sheet data with 5-second TTL"""
+        """Read and cache sheet data"""
         try:
             result = _self.sheets_service.spreadsheets().values().get(
                 spreadsheetId=sheet_id,
@@ -138,6 +103,46 @@ class TimesheetApp:
             st.error(f"Error reading Google Sheet: {str(e)}")
             return pd.DataFrame()
 
+    def get_program_cap(self, program):
+        """Get the maximum hours cap for a program"""
+        program_caps = {
+            "Rawdat": 2.0,
+            "Sigaar": 2.0,
+            "Mukhayyam": 2.0,
+            "Kibaar": 2.0,
+            "Camp": 2.0
+        }
+        return program_caps.get(program, 2.0)  # Default to 2.0 if program not found
+
+    def round_partial_hour(self, minutes):
+        """Round minutes according to the specified rules"""
+        if minutes <= 15:
+            return 0.25
+        elif minutes <= 30:
+            return 0.50
+        elif minutes <= 45:
+            return 0.75
+        else:
+            return 1.0
+
+    def adjust_hours(self, actual_hours, program):
+        """
+        Adjust hours based on program cap and rounding rules
+        """
+        program_cap = self.get_program_cap(program)
+        
+        # If exceeds cap, return cap
+        if actual_hours > program_cap:
+            return program_cap
+            
+        # Calculate whole hours and remaining minutes
+        whole_hours = int(actual_hours)
+        remaining_minutes = round((actual_hours - whole_hours) * 60)
+        
+        # Apply rounding rules for partial hour
+        partial_hour = self.round_partial_hour(remaining_minutes)
+        
+        return float(whole_hours + partial_hour)
     def append_to_sheet(self, sheet_id, range_name, values):
         """Append values to Google Sheet"""
         try:
@@ -179,7 +184,7 @@ class TimesheetApp:
     def get_teacher_info(_self, teacher_id):
         """Get and cache teacher information"""
         try:
-            teachers_df = _self.read_sheet_to_df(_self.teachers_sheet_id, 'A:D')
+            teachers_df = _self.read_sheet_to_df(_self.teachers_sheet_id, 'A:C')  # Modified to remove budgeted_hours column
             if not teachers_df.empty:
                 teacher_id = str(teacher_id).strip()
                 teachers_df['teacher_id'] = teachers_df['teacher_id'].astype(str).str.strip()
@@ -268,6 +273,7 @@ class TimesheetApp:
         except Exception as e:
             st.error(f"Error during clock in: {str(e)}")
             return False
+
     def handle_clock_out(self, teacher_id, program):
         """Handle clock out with improved validation and caching"""
         try:
@@ -316,13 +322,10 @@ class TimesheetApp:
                 st.error(f"Program mismatch. You clocked in for {active_row['program']}")
                 return False
             
-            teacher = self.get_teacher_info(teacher_id)
-            budgeted_hours = float(teacher['budgeted_hours'])
-            
             try:
                 clock_in_time = datetime.strptime(f"{current_date} {active_row['clock_in']}", '%Y-%m-%d %H:%M:%S')
                 actual_hours = (current_time - clock_in_time).total_seconds() / 3600
-                adjusted_hours = min(actual_hours, budgeted_hours)
+                adjusted_hours = self.adjust_hours(actual_hours, active_row['program'])
             except ValueError as e:
                 st.error(f"Error calculating hours: {str(e)}")
                 return False
@@ -351,7 +354,7 @@ class TimesheetApp:
         except Exception as e:
             st.error(f"Error during clock out: {str(e)}")
             return False
-
+        
     @staticmethod
     @st.cache_data(ttl=60)
     def format_clock_time(time_str):
@@ -508,7 +511,7 @@ class TimesheetApp:
                             display_df['sort_datetime'] = pd.to_datetime(display_df['date'])
                         
                         display_df = display_df.sort_values('sort_datetime', ascending=False)
-                        columns_to_display = ['date', 'program', 'clock_in', 'clock_out']
+                        columns_to_display = ['date', 'program', 'clock_in', 'clock_out', 'actual_hours', 'adjusted_hours']
                         display_df = display_df[columns_to_display]
                         
                         st.dataframe(display_df, use_container_width=True)
