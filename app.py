@@ -515,8 +515,7 @@ class TimesheetApp:
                         columns_to_display = ['date', 'program', 'clock_in', 'clock_out', 'actual_hours', 'adjusted_hours']
                         display_df = display_df[columns_to_display]
                         
-                         # Format column names to title case and replace underscores with spaces
-                        display_df.columns = [col.replace('_', ' ').title() for col in display_df.columns]
+                        
                         
                         # Display the dataframe without scrolling
                         # Calculate height based on number of rows (approximately 35px per row plus 40px header)
@@ -526,6 +525,9 @@ class TimesheetApp:
                         # Convert adjusted_hours to float and calculate total
                         display_df['adjusted_hours'] = pd.to_numeric(display_df['adjusted_hours'], errors='coerce')
                         total_adjusted_hours = display_df['adjusted_hours'].sum()
+
+                         # Format column names to title case and replace underscores with spaces
+                        display_df.columns = [col.replace('_', ' ').title() for col in display_df.columns]
                         
                         # Display total with proper formatting
                         st.markdown(
