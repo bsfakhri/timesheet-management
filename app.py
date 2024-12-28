@@ -107,10 +107,11 @@ class TimesheetApp:
         """Get the maximum hours cap for a program"""
         program_caps = {
             "Rawdat": 2.0,
+            "Rawdat + Meeting": 2.5,
             "Sigaar": 2.0,
-            "Mukhayyam": 2.0,
+            "Mukhayyam": 4.0,
             "Kibaar": 2.0,
-            "Camp": 2.0
+            "Camp": 4.0
         }
         return program_caps.get(program, 2.0)  # Default to 2.0 if program not found
 
@@ -414,7 +415,7 @@ class TimesheetApp:
             label_visibility="collapsed"
         ).strip()
         
-        programs = ["Select Program", "Rawdat", "Sigaar", "Mukhayyam", "Kibaar", "Camp"]
+        programs = ["Select Program", "Rawdat","Rawdat + Meeting", "Sigaar", "Mukhayyam", "Kibaar", "Camp"]
         program = st.selectbox(
             "Choose Program",
             programs,
