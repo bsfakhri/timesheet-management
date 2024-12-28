@@ -452,7 +452,7 @@ class TimesheetApp:
                 else:
                     st.error("Please enter ITS ID")
 
-        def show_history_page(self, teacher_id):
+    def show_history_page(self, teacher_id):
         """Show timesheet history page"""
         if st.button("← Back", key="back_button"):
             st.session_state.current_page = 'main'
