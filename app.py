@@ -515,6 +515,9 @@ class TimesheetApp:
                         columns_to_display = ['date', 'program', 'clock_in', 'clock_out', 'actual_hours', 'adjusted_hours']
                         display_df = display_df[columns_to_display]
                         
+                         # Format column names to title case and replace underscores with spaces
+                        display_df.columns = [col.replace('_', ' ').title() for col in display_df.columns]
+                        
                         # Display the dataframe without scrolling
                         # Calculate height based on number of rows (approximately 35px per row plus 40px header)
                         height = len(display_df) * 35 + 40
