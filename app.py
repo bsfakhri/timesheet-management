@@ -452,7 +452,7 @@ class TimesheetApp:
                 else:
                     st.error("Please enter ITS ID")
 
-    def show_history_page(self, teacher_id):
+        def show_history_page(self, teacher_id):
         """Show timesheet history page"""
         if st.button("← Back", key="back_button"):
             st.session_state.current_page = 'main'
@@ -517,8 +517,11 @@ class TimesheetApp:
                         # Display the dataframe
                         st.dataframe(display_df, use_container_width=True)
                         
-                        # Calculate and display total adjusted hours
+                        # Convert adjusted_hours to float and calculate total
+                        display_df['adjusted_hours'] = pd.to_numeric(display_df['adjusted_hours'], errors='coerce')
                         total_adjusted_hours = display_df['adjusted_hours'].sum()
+                        
+                        # Display total with proper formatting
                         st.markdown(
                             f"""
                             <div style="text-align: right; padding: 10px; background-color: #f0f2f6; border-radius: 5px; margin-top: 10px;">
