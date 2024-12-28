@@ -514,7 +514,19 @@ class TimesheetApp:
                         columns_to_display = ['date', 'program', 'clock_in', 'clock_out', 'actual_hours', 'adjusted_hours']
                         display_df = display_df[columns_to_display]
                         
+                        # Display the dataframe
                         st.dataframe(display_df, use_container_width=True)
+                        
+                        # Calculate and display total adjusted hours
+                        total_adjusted_hours = display_df['adjusted_hours'].sum()
+                        st.markdown(
+                            f"""
+                            <div style="text-align: right; padding: 10px; background-color: #f0f2f6; border-radius: 5px; margin-top: 10px;">
+                                <strong>Total Adjusted Hours: {total_adjusted_hours:.2f}</strong>
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
                     else:
                         st.info(f"No entries for {calendar.month_name[month]} {year}")
 
