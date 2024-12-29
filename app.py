@@ -107,7 +107,7 @@ class TimesheetApp:
         """Get the maximum hours cap for a program"""
         program_caps = {
             "Rawdat": 2.0,
-            "Rawdat + Meeting": 2.5,
+            "Rawdat + Admin Work": 2.5,
             "Sigaar": 2.0,
             "Mukhayyam": 4.0,
             "Kibaar": 2.0,
@@ -415,7 +415,7 @@ class TimesheetApp:
             label_visibility="collapsed"
         ).strip()
         
-        programs = ["Select Program", "Rawdat","Rawdat + Meeting", "Sigaar", "Mukhayyam", "Kibaar", "Camp"]
+        programs = ["Select Program", "Rawdat","Rawdat + Admin Work", "Sigaar", "Mukhayyam", "Kibaar", "Camp"]
         program = st.selectbox(
             "Choose Program",
             programs,
@@ -525,9 +525,6 @@ class TimesheetApp:
                         # Convert adjusted_hours to float and calculate total
                         display_df['adjusted_hours'] = pd.to_numeric(display_df['adjusted_hours'], errors='coerce')
                         total_adjusted_hours = display_df['adjusted_hours'].sum()
-
-                         # Format column names to title case and replace underscores with spaces
-                        display_df.columns = [col.replace('_', ' ').title() for col in display_df.columns]
                         
                         # Display total with proper formatting
                         st.markdown(
