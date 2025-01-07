@@ -512,7 +512,7 @@ class TimesheetApp:
                             display_df['sort_datetime'] = pd.to_datetime(display_df['date'])
                         
                         display_df = display_df.sort_values('sort_datetime', ascending=False)
-                        columns_to_display = ['date', 'program', 'clock_in', 'clock_out', 'actual_hours', 'adjusted_hours']
+                        columns_to_display = ['date', 'program', 'clock_in', 'clock_out', 'adjusted_hours']
                         display_df = display_df[columns_to_display]
                         
                         
