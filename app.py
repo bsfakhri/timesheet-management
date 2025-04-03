@@ -781,7 +781,7 @@ class TimesheetApp:
             with col2:
                 if st.button("🕐 Clock Out", use_container_width=True):
                     if self.handle_clock_out(teacher_id, program):
-                        st.success(f"Clocked out successfully at {datetime.now().strftime('%I:%M %p')}")
+                        st.success(f"Clocked in successfully at {self.get_london_time().strftime('%I:%M %p')}")
             
             with col3:
                 if st.button("📋 History", use_container_width=True):
