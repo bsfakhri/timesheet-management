@@ -6,3 +6,4 @@ google-api-python-client>=2.151.0
 python-dotenv>=1.0.1
 st-gsheets-connection
 reportlab>=4.0.4
+pytz

@@ -15,6 +15,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from io import BytesIO
 import base64
+import pytz
 
 class TimesheetApp:
     def __init__(self):
@@ -453,7 +454,7 @@ class TimesheetApp:
                 timesheet_df = self.read_sheet_to_df(self.timesheet_sheet_id, 'A:H')
                 
                 current_date = datetime.now().strftime('%Y-%m-%d')
-                current_time = datetime.now().strftime('%H:%M:%S')
+                current_time = self.get_london_time().strftime('%H:%M:%S')
                 
                 new_entry = [
                     len(timesheet_df) + 1 if not timesheet_df.empty else 1,
@@ -504,7 +505,7 @@ class TimesheetApp:
 
             timesheet_df = self.read_sheet_to_df(self.timesheet_sheet_id, 'A:H')
             current_date = datetime.now().strftime('%Y-%m-%d')
-            current_time = datetime.now()
+            current_time = self.get_london_time()
             
             # Ensure consistent data types
             timesheet_df['teacher_id'] = timesheet_df['teacher_id'].astype(str).str.strip()
@@ -530,8 +531,14 @@ class TimesheetApp:
                 return False
             
             try:
+                # Parse the clock-in time as a naive datetime
                 clock_in_time = datetime.strptime(f"{current_date} {active_row['clock_in']}", '%Y-%m-%d %H:%M:%S')
-                actual_hours = (current_time - clock_in_time).total_seconds() / 3600
+                
+                # Make the current time naive for consistent comparison
+                current_time_naive = current_time.replace(tzinfo=None)
+                
+                # Calculate hours as before
+                actual_hours = (current_time_naive - clock_in_time).total_seconds() / 3600
                 adjusted_hours = self.adjust_hours(actual_hours, active_row['program'])
             except ValueError as e:
                 st.error(f"Error calculating hours: {str(e)}")
@@ -1146,6 +1153,10 @@ class TimesheetApp:
             except Exception as e:
                 st.error(f"Error generating PDF report: {str(e)}")
                 return None
+    def get_london_time(self):
+        """Get current time in London (GMT/BST) with proper DST handling"""
+        london_tz = pytz.timezone('Europe/London')
+        return datetime.now(pytz.utc).astimezone(london_tz)
 
 if __name__ == "__main__":
     app = TimesheetApp()
