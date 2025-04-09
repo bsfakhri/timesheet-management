@@ -745,13 +745,27 @@ class TimesheetApp:
             # Group by program and sum adjusted hours
             program_totals = entries.groupby('program')['adjusted_hours'].sum().round(2)
             
-            # Convert to dictionary and sort by total hours
-            totals_dict = dict(sorted(
-                program_totals.items(),
-                key=lambda x: (-x[1], x[0])  # Sort by hours (desc) then program name (asc)
-            ))
+            # Convert to dictionary
+            totals_dict = program_totals.to_dict()
             
-            return totals_dict
+            # Combine Rawdat and Rawdat + Admin Work
+            rawdat_total = 0
+            if 'Rawdat' in totals_dict:
+                rawdat_total += totals_dict['Rawdat']
+                del totals_dict['Rawdat']
+                
+            if 'Rawdat + Admin Work' in totals_dict:
+                rawdat_total += totals_dict['Rawdat + Admin Work']
+                del totals_dict['Rawdat + Admin Work']
+                
+            if rawdat_total > 0:
+                totals_dict['Rawdat & Rawdat + Admin Work'] = rawdat_total
+            
+            # Sort by total hours (descending) then program name (ascending)
+            return dict(sorted(
+                totals_dict.items(),
+                key=lambda x: (-x[1], x[0])
+            ))
             
         except Exception as e:
             st.error(f"Error calculating program totals: {str(e)}")
